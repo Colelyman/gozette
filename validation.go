@@ -6,10 +6,15 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"net/url"
 	"strings"
+)
 
-	"github.com/aws/aws-lambda-go/events"
+type ContentType int
+
+const (
+	WWW_FORM ContentType = iota
+	JSON
+	UNSUPPORTED_TYPE
 )
 
 type IndieAuthRes struct {
@@ -34,7 +39,7 @@ func checkAccess(token string) (bool, error) {
 	}
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Authorization", token)
-	// fmt.Println(req)
+
 	// send the request
 	res, err := client.Do(req)
 	if err != nil {
@@ -77,70 +82,32 @@ func checkAccess(token string) (bool, error) {
 	return true, nil
 }
 
-func checkAuthorization(bodyValues url.Values, req events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
-	// check the headers for authorization first
-	token, ok := req.Headers["authorization"]
-	if ok {
-		fmt.Println("Authorization header exists: " + token)
-	} else if token, ok := bodyValues["access_token"]; ok {
-		token := "Bearer " + token[0]
-		fmt.Println("Access_token in body exists: " + token)
+func CheckAuthorization(entry *Entry, headers map[string]string) bool {
+	token, ok := headers["authorization"]
+	if !ok {
+		token = entry.token
 	} else {
-		return &events.APIGatewayProxyResponse{
-			StatusCode: 401,
-			Body:       "Unauthorized, access token was not provided",
-		}, errors.New("Access token was not provided")
+		return false
 	}
 
-	// var err string
 	if ok, err := checkAccess(token); ok {
-		location, err := CreateEntry(bodyValues)
-		if err != nil {
-			return &events.APIGatewayProxyResponse{
-				StatusCode: 403,
-				Body:       "Error occured while checking access",
-			}, err
-		}
-		// Everything worked out!! Send the location and an OK status
-		return &events.APIGatewayProxyResponse{
-			StatusCode: 202,
-			Headers:    map[string]string{"Location": location},
-		}, nil
+		return true
+	} else if err != nil {
+		return false
 	} else {
-		return &events.APIGatewayProxyResponse{
-			StatusCode: 403,
-			Body:       "Forbidden, the provided access token does not grant permission",
-		}, errors.New("The provided access token does not grant permission " + err.Error())
+		return false
 	}
 }
 
-func CheckContentType(req events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
-	if contentType, ok := req.Headers["content-type"]; ok {
-		if contentType == "application/x-www-form-urlencoded" || contentType == "application/x-www-form-urlencoded;charset=UTF-8" {
-			bodyValues, err := url.ParseQuery(req.Body)
-			if err != nil {
-				return &events.APIGatewayProxyResponse{
-					StatusCode: 400,
-					Body:       "Bad Request, error parsing the body of the request",
-				}, errors.New("Error parsing the body of the request")
-			} else if val, ok := bodyValues["h"]; !ok || val[0] != "entry" {
-				return &events.APIGatewayProxyResponse{
-					StatusCode: 400,
-					Body:       "Bad Request, either there is no h value in the body or its value is not entry",
-				}, errors.New("Error with the h value in the body of the request")
-			}
-			// proceed to check authorization
-			return checkAuthorization(bodyValues, req)
-		} else {
-			return &events.APIGatewayProxyResponse{
-				StatusCode: 400,
-				Body:       "Bad Request, content-type " + contentType + " is not supported, use application/x-www-form-urlencoded",
-			}, errors.New("Content-type " + contentType + " is not supported, use application/x-www-form-urlencoded")
+func GetContentType(headers map[string]string) (ContentType, error) {
+	if contentType, ok := headers["content-type"]; ok {
+		if strings.Contains(contentType, "application/x-www-form-urlencoded") {
+			return WWW_FORM, nil
 		}
-	} else {
-		return &events.APIGatewayProxyResponse{
-			StatusCode: 400,
-			Body:       "Bad Request, content-type is not provided in the request",
-		}, errors.New("Content-type is not provided in the request")
+		if strings.Contains(contentType, "application/json") {
+			return JSON, nil
+		}
+		return UNSUPPORTED_TYPE, errors.New("Content-type " + contentType + " is not supported, use application/x-www-form-urlencoded or application/json")
 	}
+	return UNSUPPORTED_TYPE, errors.New("Content-type is not provided in the request")
 }

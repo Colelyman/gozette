@@ -1,51 +1,80 @@
 package main
 
 import (
-	"bytes"
+	"encoding/json"
 	"errors"
-	"fmt"
 	"net/url"
 	"time"
 
 	hashids "github.com/speps/go-hashids"
 )
 
+type PostType int
+
+const (
+	EntryPost PostType = iota + 1
+	UpdatePost
+)
+
 type Entry struct {
-	Content string
-	tags    []string
-	slug    string
-	hash    string
+	Content    string   `json:"content"`
+	Categories []string `json:"category"`
+	Type       PostType `json:"type"`
+	Slug       string   `json:"mp-slug"`
+	hash       string
+	token      string
 }
 
-func CreateEntry(bodyValues url.Values) (string, error) {
+func CreateEntry(contentType ContentType, body string) (*Entry, error) {
+	if contentType == WWW_FORM {
+		bodyValues, err := url.ParseQuery(body)
+		if err != nil {
+			return nil, err
+		}
+		return createEntryFromURLValues(bodyValues)
+	} else if contentType == JSON {
+		entry := new(Entry)
+		err := json.Unmarshal([]byte(body), entry)
+		return entry, err
+	} else {
+		return nil, errors.New("Unsupported content-type")
+	}
+}
+
+func createEntryFromURLValues(bodyValues url.Values) (*Entry, error) {
 	if _, ok := bodyValues["content"]; ok {
-		fmt.Println(bodyValues)
 		entry := new(Entry)
 		entry.Content = bodyValues["content"][0]
 		entry.hash = generateHash()
-		if tags, ok := bodyValues["category"]; ok {
-			entry.tags = tags
+		if category, ok := bodyValues["category"]; ok {
+			entry.Categories = category
+		} else if categories, ok := bodyValues["category[]"]; ok {
+			entry.Categories = categories
 		} else {
-			entry.tags = nil
+			entry.Categories = nil
 		}
 		if slug, ok := bodyValues["mp-slug"]; ok && len(slug) > 0 && slug[0] != "" {
-			entry.slug = slug[0] + "-" + entry.hash
+			entry.Slug = slug[0] + "-" + entry.hash
 		} else {
-			entry.slug = entry.hash
+			entry.Slug = entry.hash
 		}
-		fmt.Printf("Hash value is %+v\n", entry.hash)
-
-		// construct the post
-		path, file, _ := writePost(entry)
-		err := CommitEntry(path, file)
-		if err != nil {
-			return "", err
+		if token, ok := bodyValues["access_token"]; ok {
+			entry.token = "Bearer " + token[0]
 		}
 
-		return "/micro/" + entry.slug, err
+		return entry, nil
 	}
-	return "",
-		errors.New("Content in response body is missing")
+	return nil,
+		errors.New("Error parsing the entry from URL Values")
+}
+
+func WriteEntry(entry *Entry) (string, error) {
+	path, file := WriteHugoPost(entry)
+	err := CommitEntry(path, file)
+	if err != nil {
+		return "", err
+	}
+	return path, nil
 }
 
 func generateHash() string {
@@ -62,36 +91,4 @@ func generateHash() string {
 	id, _ := h.Encode(t)
 
 	return id
-}
-
-func writePost(entry *Entry) (string, string, error) {
-	var buff bytes.Buffer
-
-	location, _ := time.LoadLocation("MST")
-	t := time.Now().In(location).Format(time.RFC822)
-	// write the front matter in toml format
-	buff.WriteString("+++\n")
-	buff.WriteString("title = \"\"\n")
-	buff.WriteString("date = \"" + t + "\"\n")
-	buff.WriteString("categories = [\"Micro\"]\n")
-	buff.WriteString("tags = [")
-	for i, tag := range entry.tags {
-		buff.WriteString("\"" + tag + "\"")
-		if i < len(entry.tags)-1 {
-			buff.WriteString(", ")
-		}
-	}
-	buff.WriteString("]\n")
-	buff.WriteString("slug = \"" + entry.slug + "\"\n")
-	buff.WriteString("+++\n")
-
-	// write the content
-	buff.WriteString(entry.Content + "\n")
-
-	fmt.Printf("Length of slug is %d, with value %s.\n", len(entry.slug), entry.slug)
-	// path := strings.Replace(entry.slug, " ", "-", -1) + ".md"
-	path := entry.slug + ".md"
-	fmt.Printf("path is %+v\n", path)
-
-	return "site/content/micro/" + path, buff.String(), nil
 }

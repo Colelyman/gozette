@@ -25,8 +25,34 @@ func handler(req events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse
 	// fmt.Println(req.Headers)
 	// fmt.Println(req.Body)
 
-	// check the content-type and proceed down the rabbit hole
-	return CheckContentType(req)
+	// check the content-type
+	contentType, err := GetContentType(req.Headers)
+	if err != nil {
+		return &events.APIGatewayProxyResponse{
+			StatusCode: 400,
+			Body:       err.Error(),
+		}, err
+	}
+	entry, err := CreateEntry(contentType, req.Body)
+	if CheckAuthorization(entry, req.Headers) {
+		location, err := WriteEntry(entry)
+		if err != nil {
+			return &events.APIGatewayProxyResponse{
+				StatusCode: 400,
+				Body:       "There was an error committing the entry to the repository",
+			}, errors.New("Error committing the entry to the repository")
+		} else {
+			return &events.APIGatewayProxyResponse{
+				StatusCode: 202,
+				Headers:    map[string]string{"Location": location},
+			}, nil
+		}
+	} else {
+		return &events.APIGatewayProxyResponse{
+			StatusCode: 403,
+			Body:       "Forbidden, there was a problem with the provided access token",
+		}, errors.New("The provided access token does not grant permission")
+	}
 }
 
 func main() {
