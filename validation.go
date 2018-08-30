@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -15,6 +14,11 @@ const (
 	WWW_FORM ContentType = iota
 	JSON
 	UNSUPPORTED_TYPE
+)
+
+const (
+	indieAuthTokenUrl = "https://tokens.indieauth.com/token"
+	indieAuthMe       = "http://colelyman.com/"
 )
 
 type IndieAuthRes struct {
@@ -32,7 +36,7 @@ func checkAccess(token string) (bool, error) {
 	}
 	// form the request to check the token
 	client := &http.Client{}
-	req, err := http.NewRequest("GET", "https://tokens.indieauth.com/token", nil)
+	req, err := http.NewRequest("GET", indieAuthTokenUrl, nil)
 	if err != nil {
 		return false,
 			errors.New("Error making the request for checking token access")
@@ -54,7 +58,6 @@ func checkAccess(token string) (bool, error) {
 			errors.New("Error parsing the response for checking token access")
 	}
 	var indieAuthRes = new(IndieAuthRes)
-	fmt.Println(string(body[:]))
 	err = json.Unmarshal(body, &indieAuthRes)
 	if err != nil {
 		return false,
@@ -62,8 +65,7 @@ func checkAccess(token string) (bool, error) {
 	}
 
 	// verify results of the response
-	if indieAuthRes.Me != "http://colelyman.com/" {
-		fmt.Println(indieAuthRes.Me + " != http://colelyman.com/")
+	if indieAuthRes.Me != indieAuthMe {
 		return false,
 			errors.New("Me does not match")
 	}
