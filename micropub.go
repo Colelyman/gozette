@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
@@ -34,6 +35,8 @@ func handler(req events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse
 		}, err
 	}
 	entry, err := CreateEntry(contentType, req.Body)
+	fmt.Printf("req.Headers: %v\n", req.Headers)
+	fmt.Printf("req.Headers[authorization]: %s\n", req.Headers["authorization"])
 	if CheckAuthorization(entry, req.Headers) {
 		location, err := WriteEntry(entry)
 		if err != nil {
