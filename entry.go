@@ -96,7 +96,7 @@ func WriteEntry(entry *Entry) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return path, nil
+	return "/micro/" + entry.Slug, nil
 }
 
 func generateHash() string {

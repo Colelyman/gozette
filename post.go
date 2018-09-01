@@ -10,7 +10,7 @@ const (
 	timeFormat = time.RFC822
 )
 
-func writeTomlHugoHeader(entry *Entry, buff bytes.Buffer) {
+func writeTomlHugoHeader(entry *Entry, buff *bytes.Buffer) {
 	location, _ := time.LoadLocation(timeZone)
 	t := time.Now().In(location).Format(timeFormat)
 	// write the front matter in toml format
@@ -33,7 +33,7 @@ func writeTomlHugoHeader(entry *Entry, buff bytes.Buffer) {
 func WriteHugoPost(entry *Entry) (string, string) {
 	var buff bytes.Buffer
 
-	writeTomlHugoHeader(entry, buff)
+	writeTomlHugoHeader(entry, &buff)
 
 	if len(entry.In_reply_to) > 0 {
 		buff.WriteString("↪️ replying to: " + entry.In_reply_to + "\n")
