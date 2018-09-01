@@ -1,0 +1,27 @@
+#+title: gozette
+A Micropub server written in Go, primarily designed for static sites.
+* About
+=gozette= was designed with static sites in mind (specifically sites generated
+using [[https://gohugo.io][Hugo]]). However, in principle =gozette= can be extended to other static
+site generators. =gozette= can be run using [[https://aws.amazon.com/lambda/][AWS Lambda]] serverless functions.
+
+This is still in /alpha/, but I am [[https://indieweb.org/dogfood][dogfooding]] =gozette= on my own site at
+[[https://colelyman.com][colelyman.com]].
+** How it works
+A [[https://indieweb.org/Micropub][Micropub]] server accepts requests from [[https://indieweb.org/Micropub/Clients][Micropub clients]] that allow you to
+publish posts (and other types of content such as likes or reposts). When
+=gozette= receives a Micropub request, it first authenticates via [[https://indieweb.org/IndieAuth][IndieAuth]],
+then if the user making the request is authorized a new file will be created and
+committed to the website's repository. Once this commit is pushed to the
+repository, a new build is triggered and the new Micropub post is published.
+
+This setup requires that the following environment variables are set:
+  - REPOSITORY_URL :: the repository where the site resides, e.g.
+       =Colelyman/colelyman-hugo= (this assumes that the repository is on Github)
+  - BRANCH :: this is the branch of the site's repository that should be
+       updated, e.g. =heads/master=
+  - GIT_API_TOKEN :: a token generated to allow push access to the Github
+       repository, generate one [[https://github.com/settings/tokens][here]]
+** My Configuration
+I have [[https://colelyman.com][colelyman.com]] (source: [[https://github.com/Colelyman/colelyman-hugo][Colelyman/colelyman-hugo]]) hosted on [[https://www.netlify.com/][Netlify]] and
+=gozette= is running as an AWS Lambda function via Netlify.
