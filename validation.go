@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -87,17 +86,15 @@ func checkAccess(token string) (bool, error) {
 
 func CheckAuthorization(entry *Entry, headers map[string]string) bool {
 	token, ok := headers["authorization"]
-	fmt.Println("token found in header")
 	if !ok && len(entry.token) == 0 { // there is no token provided
 		return false
+	} else if ok {
+		entry.token = token
 	}
-
-	entry.token = token
 
 	if ok, err := checkAccess(entry.token); ok {
 		return true
 	} else if err != nil {
-		fmt.Printf("access not granted, error is: %s\n", err.Error())
 		return false
 	} else {
 		return false
