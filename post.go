@@ -35,8 +35,18 @@ func WriteHugoPost(entry *Entry) (string, string) {
 
 	writeTomlHugoHeader(entry, buff)
 
-	// write the content
-	buff.WriteString(entry.Content + "\n")
+	if len(entry.In_reply_to) > 0 {
+		buff.WriteString("↪️ replying to: " + entry.In_reply_to + "\n")
+	}
+	if len(entry.Like_of) > 0 {
+		buff.WriteString("👍: " + entry.Like_of + "\n")
+	}
+	if len(entry.Repost_of) > 0 {
+		buff.WriteString("🔁 repost of: " + entry.Repost_of + "\n")
+	}
+	if len(entry.Content) > 0 {
+		buff.WriteString(entry.Content + "\n")
+	}
 
 	path := entry.Slug + ".md"
 

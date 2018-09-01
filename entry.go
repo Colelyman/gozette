@@ -13,16 +13,23 @@ type PostType int
 
 const (
 	EntryPost PostType = iota + 1
-	UpdatePost
+	CardPost
+	EventPost
+	CitePost
 )
 
 type Entry struct {
-	Content    string   `json:"content"`
-	Categories []string `json:"category"`
-	Type       PostType `json:"type"`
-	Slug       string   `json:"mp-slug"`
-	hash       string
-	token      string
+	Content     string   `json:"content"`
+	Name        string   `json:"name"`
+	Categories  []string `json:"category"`
+	Type        PostType `json:"type"`
+	Slug        string   `json:"mp-slug"`
+	Summary     string   `json:"summary"`
+	In_reply_to string   `json:"in-reply-to"`
+	Like_of     string   `json:"like-of"`
+	Repost_of   string   `json:"repost-of"`
+	hash        string
+	token       string
 }
 
 func CreateEntry(contentType ContentType, body string) (*Entry, error) {
@@ -46,6 +53,9 @@ func createEntryFromURLValues(bodyValues url.Values) (*Entry, error) {
 		entry := new(Entry)
 		entry.Content = bodyValues["content"][0]
 		entry.hash = generateHash()
+		if name, ok := bodyValues["name"]; ok {
+			entry.Name = name[0]
+		}
 		if category, ok := bodyValues["category"]; ok {
 			entry.Categories = category
 		} else if categories, ok := bodyValues["category[]"]; ok {
@@ -57,6 +67,18 @@ func createEntryFromURLValues(bodyValues url.Values) (*Entry, error) {
 			entry.Slug = slug[0] + "-" + entry.hash
 		} else {
 			entry.Slug = entry.hash
+		}
+		if summary, ok := bodyValues["summary"]; ok {
+			entry.Summary = summary[0]
+		}
+		if inReplyTo, ok := bodyValues["in-reply-to"]; ok {
+			entry.In_reply_to = inReplyTo[0]
+		}
+		if likeOf, ok := bodyValues["like-of"]; ok {
+			entry.Like_of = likeOf[0]
+		}
+		if repostOf, ok := bodyValues["repost-of"]; ok {
+			entry.Repost_of = repostOf[0]
 		}
 		if token, ok := bodyValues["access_token"]; ok {
 			entry.token = "Bearer " + token[0]
