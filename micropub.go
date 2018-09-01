@@ -10,9 +10,17 @@ import (
 func handler(req events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
 	// a handler for GET requests, used for troubleshooting
 	if req.HTTPMethod == "GET" {
+		if q, ok := req.PathParameters["q"]; ok && q == "syndicate-to" {
+			return &events.APIGatewayProxyResponse{
+				StatusCode: 200,
+				Headers:    map[string]string{"Content-type": "application/json"},
+				Body:       "[]",
+			}, nil
+		}
 		return &events.APIGatewayProxyResponse{
 			StatusCode: 200,
-			Body:       "Everything is working, this is the GET request body: " + req.Body,
+			Headers:    map[string]string{"Content-type": "application/json"},
+			Body:       "{}",
 		}, nil
 	}
 	// check if the request is a post
@@ -32,6 +40,12 @@ func handler(req events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse
 		}, err
 	}
 	entry, err := CreateEntry(contentType, req.Body)
+	if entry == nil {
+		return &events.APIGatewayProxyResponse{
+			StatusCode: 400,
+			Body:       "There was an error creating the entry",
+		}, err
+	}
 	if CheckAuthorization(entry, req.Headers) {
 		location, err := WriteEntry(entry)
 		if err != nil {

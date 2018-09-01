@@ -46,6 +46,7 @@ func CreateEntry(contentType ContentType, body string) (*Entry, error) {
 		return entry, err
 	} else if contentType == MULTIPART {
 		fmt.Println("Multipart content-type was detected")
+		fmt.Printf("body is: %s\n", body)
 		return nil, errors.New("Multipart content-type not implemented yet")
 	} else {
 		return nil, errors.New("Unsupported content-type")
