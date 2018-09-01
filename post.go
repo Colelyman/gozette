@@ -10,12 +10,18 @@ const (
 	timeFormat = time.RFC822
 )
 
-func writeTomlHugoHeader(entry *Entry, buff *bytes.Buffer) {
+func writeTomlHugoHeader(entry *Entry) string {
+	var buff bytes.Buffer
+
 	location, _ := time.LoadLocation(timeZone)
 	t := time.Now().In(location).Format(timeFormat)
 	// write the front matter in toml format
 	buff.WriteString("+++\n")
-	buff.WriteString("title = \"\"\n")
+	if len(entry.Name) == 0 {
+		buff.WriteString("title = \"\"\n")
+	} else {
+		buff.WriteString("title = \"" + entry.Name + "\"\n")
+	}
 	buff.WriteString("date = \"" + t + "\"\n")
 	buff.WriteString("categories = [\"Micro\"]\n")
 	buff.WriteString("tags = [")
@@ -28,12 +34,14 @@ func writeTomlHugoHeader(entry *Entry, buff *bytes.Buffer) {
 	buff.WriteString("]\n")
 	buff.WriteString("slug = \"" + entry.Slug + "\"\n")
 	buff.WriteString("+++\n")
+
+	return buff.String()
 }
 
 func WriteHugoPost(entry *Entry) (string, string) {
 	var buff bytes.Buffer
 
-	writeTomlHugoHeader(entry, &buff)
+	buff.WriteString(writeTomlHugoHeader(entry))
 
 	if len(entry.In_reply_to) > 0 {
 		buff.WriteString("↪️ replying to: " + entry.In_reply_to + "\n")
