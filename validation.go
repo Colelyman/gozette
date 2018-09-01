@@ -13,6 +13,7 @@ type ContentType int
 const (
 	WWW_FORM ContentType = iota
 	JSON
+	MULTIPART
 	UNSUPPORTED_TYPE
 )
 
@@ -108,6 +109,9 @@ func GetContentType(headers map[string]string) (ContentType, error) {
 		}
 		if strings.Contains(contentType, "application/json") {
 			return JSON, nil
+		}
+		if strings.Contains(contentType, "multipart/form-data") {
+			return MULTIPART, nil
 		}
 		return UNSUPPORTED_TYPE, errors.New("Content-type " + contentType + " is not supported, use application/x-www-form-urlencoded or application/json")
 	}

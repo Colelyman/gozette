@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/url"
 	"time"
 
@@ -43,6 +44,9 @@ func CreateEntry(contentType ContentType, body string) (*Entry, error) {
 		entry := new(Entry)
 		err := json.Unmarshal([]byte(body), entry)
 		return entry, err
+	} else if contentType == MULTIPART {
+		fmt.Println("Multipart content-type was detected")
+		return nil, errors.New("Multipart content-type not implemented yet")
 	} else {
 		return nil, errors.New("Unsupported content-type")
 	}

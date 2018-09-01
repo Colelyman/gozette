@@ -22,8 +22,6 @@ func handler(req events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse
 			Body:       "The HTTP method is not allowed, make a POST request",
 		}, errors.New("HTTP method is not valid")
 	}
-	// fmt.Println(req.Headers)
-	// fmt.Println(req.Body)
 
 	// check the content-type
 	contentType, err := GetContentType(req.Headers)
