@@ -88,14 +88,13 @@ func checkAccess(token string) (bool, error) {
 func CheckAuthorization(entry *Entry, headers map[string]string) bool {
 	token, ok := headers["authorization"]
 	fmt.Println("token found in header")
-	if !ok {
-		token = entry.token
-		fmt.Printf("token found in body: %s\n", entry.token)
-	} else {
+	if !ok && len(entry.token) == 0 { // there is no token provided
 		return false
 	}
 
-	if ok, err := checkAccess(token); ok {
+	entry.token = token
+
+	if ok, err := checkAccess(entry.token); ok {
 		return true
 	} else if err != nil {
 		fmt.Printf("access not granted, error is: %s\n", err.Error())
